@@ -106,6 +106,12 @@ def show_analysis(analysis_data):
     for i, col in enumerate(cols):
         if i < len(keys):
             col.metric(keys[i], metrics[keys[i]])
+    
+    st.markdown("---")
+    if st.button("🔄 Rerun Simulation", type="primary", use_container_width=True):
+        st.session_state.run_sim = True
+        st.rerun()
+        
     st.balloons()
 
 # Configuration Dialog
@@ -135,14 +141,32 @@ def configure_simulation():
 
         st.write("") # Spacer
         
-        # Form Submit Button
-        submitted = st.form_submit_button("🚀 Initialize Sequence", type="primary", use_container_width=True)
+        # Form Actions
+        c_submit, c_random = st.columns([2, 1])
+        with c_submit:
+            submitted = st.form_submit_button("🚀 Initialize Sequence", type="primary", use_container_width=True)
+        with c_random:
+            random_run = st.form_submit_button("🎲 Run Random", type="secondary", use_container_width=True)
         
         if submitted:
             st.session_state.params.update({
                 'width': width, 'height': height, 'prob': prob, 
                 'duration': duration, 'speed': speed, 'decay': decay, 
                 'colormap': colormap
+            })
+            st.session_state.run_sim = True
+            st.rerun()
+            
+        if random_run:
+            colors = ["magma", "viridis", "plasma", "inferno", "ocean", "gist_earth"]
+            st.session_state.params.update({
+                'width': int(np.random.randint(50, 201)), 
+                'height': int(np.random.randint(50, 201)), 
+                'prob': float(np.random.uniform(0.05, 0.4)), 
+                'duration': int(np.random.randint(50, 300)), 
+                'speed': int(np.random.randint(10, 60)), 
+                'decay': float(np.random.uniform(0.01, 0.3)), 
+                'colormap': str(np.random.choice(colors))
             })
             st.session_state.run_sim = True
             st.rerun()
