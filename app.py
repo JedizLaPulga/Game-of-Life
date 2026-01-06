@@ -39,6 +39,33 @@ st.markdown("""
         border: none;
         border-radius: 5px;
         font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 15px rgba(75, 108, 183, 0.4);
+    }
+    
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .block-container {
+            padding-top: 2rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        h1 {
+            font-size: 1.8rem !important;
+        }
+        .stButton>button {
+            width: 100%;
+            padding: 0.75rem !important;
+            margin-top: 10px;
+        }
+        div[data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 auto !important;
+            min-width: 100% !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
