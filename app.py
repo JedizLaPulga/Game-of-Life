@@ -81,43 +81,19 @@ def grid_to_image(grid_data, colormap_name='magma'):
     # Actually streamlit st.image handles interpolation well.
     return colored_grid
 
-# Header
-st.title("🧬 Game of Life: Project Genesis")
-st.caption("A cellular automaton simulation exploring the emergence of complexity.")
+# State Initialization for Parameters (Must be global for visibility across reruns)
+if 'params' not in st.session_state:
+    st.session_state.params = {
+        'width': 100,
+        'height': 100,
+        'prob': 0.15,
+        'duration': 100,
+        'speed': 30,
+        'decay': 0.1,
+        'colormap': 'magma'
+    }
 
-# Simulation Container
-sim_container = st.empty()
-stats_container = st.empty()
-
-# Control Deck
-with st.container():
-    st.markdown("### 🎛️ Control Deck")
-    
-    with st.expander("Simulation Parameters", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        
-        with c1:
-            st.caption("🌍 World Gen")
-            width = st.slider("Grid Width", 50, 200, 100)
-            height = st.slider("Grid Height", 50, 200, 100)
-            prob = st.slider("Life Probability", 0.0, 1.0, 0.15)
-            
-        with c2:
-            st.caption("⏳ Time Physics")
-            duration = st.slider("Epoch Duration", 10, 500, 100)
-            speed = st.slider("Simulation Speed (FPS)", 1, 60, 30)
-            decay = st.slider("Visual Decay", 0.01, 0.5, 0.1)
-            
-        with c3:
-            st.caption("🎨 Optics & Action")
-            colormap = st.selectbox("Thermal Profile", ["magma", "viridis", "plasma", "inferno", "ocean", "gist_earth"])
-            st.write("") # Spacer
-            st.write("") # Spacer
-            if st.button("🚀 Initialize Sequence", type="primary", use_container_width=True):
-                st.session_state.run_sim = True
-                st.session_state.rerun_trigger = time.time()
-
-# Analysis Dialog Function (Polyfill-ish)
+# Analysis Dialog
 @st.dialog("Simulation Result")
 def show_analysis(analysis_data):
     st.header(analysis_data['title'])
@@ -130,36 +106,85 @@ def show_analysis(analysis_data):
     for i, col in enumerate(cols):
         if i < len(keys):
             col.metric(keys[i], metrics[keys[i]])
-            
     st.balloons()
 
-# Main Logic
-if 'game' not in st.session_state:
-    st.session_state.game = GameEngine(width, height, decay)
-    st.session_state.game.randomize(prob)
+# Configuration Dialog
+@st.dialog("⚙️ Mission Control")
+def configure_simulation():
+    st.caption("Configure the parameters for the next genesis event.")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("#### 🌍 World Gen")
+        width = st.slider("Grid Width", 50, 200, st.session_state.params['width'])
+        height = st.slider("Grid Height", 50, 200, st.session_state.params['height'])
+        prob = st.slider("Life Probability", 0.0, 1.0, st.session_state.params['prob'])
+    
+    with c2:
+        st.markdown("#### ⏳ Physics")
+        duration = st.slider("Epoch Duration", 10, 500, st.session_state.params['duration'])
+        speed = st.slider("Speed (FPS)", 1, 60, st.session_state.params['speed'])
+        decay = st.slider("Visual Decay", 0.01, 0.5, st.session_state.params['decay'])
+    
+    colormap = st.selectbox("Thermal Profile", ["magma", "viridis", "plasma", "inferno", "ocean", "gist_earth"], index=["magma", "viridis", "plasma", "inferno", "ocean", "gist_earth"].index(st.session_state.params['colormap']))
+    
+    st.markdown("---")
+    
+    if st.button("🚀 Initialize Sequence", type="primary", use_container_width=True):
+        # Update State
+        st.session_state.params.update({
+            'width': width, 'height': height, 'prob': prob, 
+            'duration': duration, 'speed': speed, 'decay': decay, 
+            'colormap': colormap
+        })
+        st.session_state.run_sim = True
+        st.rerun()
 
-# Reset if dimensions changed or requested
+# Header Layout
+col_title, col_btn = st.columns([6, 1])
+with col_title:
+    st.title("🧬 Game of Life: Project Genesis")
+    st.caption("A cellular automaton simulation exploring the emergence of complexity.")
+
+with col_btn:
+    st.markdown("<br>", unsafe_allow_html=True) # Spacer for alignment
+    if st.button("⚙️ Setup", type="secondary"):
+        configure_simulation()
+
+# Simulation Container
+sim_container = st.empty()
+stats_container = st.empty()
+
+# Main Logic
+# Initialize with VOID if not present
+if 'game' not in st.session_state:
+    # Empty void init
+    st.session_state.game = GameEngine(100, 100, 0.1)
+    # Force grid to zeros (Void)
+    st.session_state.game.grid = np.zeros((100, 100), dtype=int)
+    st.session_state.game.display_grid = np.zeros((100, 100), dtype=float)
+
+# Run Logic
 if 'run_sim' in st.session_state and st.session_state.run_sim:
+    # Retrieve latest params
+    p = st.session_state.params
+    
     # Re-init game with new params
-    st.session_state.game = GameEngine(width, height, decay)
-    st.session_state.game.randomize(prob)
+    st.session_state.game = GameEngine(p['width'], p['height'], p['decay'])
+    st.session_state.game.randomize(p['prob'])
     
     progress_bar = st.progress(0)
-    step_delay = 1.0 / speed
+    step_delay = 1.0 / p['speed']
     
     # Run Simulation Loop
-    for i in range(duration):
+    for i in range(p['duration']):
         st.session_state.game.step()
         
         # Render
-        img = grid_to_image(st.session_state.game.display_grid, colormap)
-        
-        # Upscale for verify (optional, helps blurriness if too small)
-        # But st.image with use_container_width=True works well.
-        
+        img = grid_to_image(st.session_state.game.display_grid, p['colormap'])
         sim_container.image(img, caption=f"Generation: {st.session_state.game.step_count}", use_container_width=True, output_format="JPEG")
         
-        progress_bar.progress((i + 1) / duration)
+        progress_bar.progress((i + 1) / p['duration'])
         time.sleep(step_delay)
     
     # Analysis
@@ -168,22 +193,18 @@ if 'run_sim' in st.session_state and st.session_state.run_sim:
     
     st.session_state.run_sim = False # Stop running
     st.session_state.last_analysis = analysis
-    
-    # Trigger Dialog
-    show_analysis(analysis)
+    st.rerun() # Rerun to show analysis dialog cleanly
 
-elif 'last_analysis' in st.session_state:
-    # Persist the last state image
-    img = grid_to_image(st.session_state.game.display_grid, colormap)
+# Rendering Idle/Finished State
+p = st.session_state.params
+img = grid_to_image(st.session_state.game.display_grid, p['colormap'])
+
+if 'last_analysis' in st.session_state and not st.session_state.get('run_sim', False):
     sim_container.image(img, caption="Simulation Ended", use_container_width=True)
-    
-    # Option to re-open analysis
-    st.info("Simulation complete. Check the Control Deck to restart.")
-    with st.expander("Last Session Analysis", expanded=True):
-        st.subheader(st.session_state.last_analysis['title'])
-        st.write(st.session_state.last_analysis['description'])
-
+    show_analysis(st.session_state.last_analysis)
+    # Clear analysis so it doesn't pop up on refresh
+    del st.session_state['last_analysis']
 else:
-    # Idle State
-    img = grid_to_image(st.session_state.game.display_grid, colormap)
-    sim_container.image(img, caption="Ready to Initialize", use_container_width=True)
+    sim_container.image(img, caption="Waiting for Sequence Initialization...", use_container_width=True)
+
+
