@@ -111,37 +111,41 @@ def show_analysis(analysis_data):
 # Configuration Dialog
 @st.dialog("⚙️ Mission Control")
 def configure_simulation():
-    # Use tabs to reduce vertical height and clutter
-    tab1, tab2, tab3 = st.tabs(["🌍 World", "⏳ Physics", "🎨 Visuals"])
-    
-    with tab1:
-        c1, c2 = st.columns(2)
-        width = c1.slider("Width", 50, 200, st.session_state.params['width'])
-        height = c2.slider("Height", 50, 200, st.session_state.params['height'])
-        prob = st.slider("Life Probability", 0.0, 1.0, st.session_state.params['prob'])
+    with st.form("config_form"):
+        # Use tabs to reduce vertical height and clutter
+        tab1, tab2, tab3 = st.tabs(["🌍 World", "⏳ Physics", "🎨 Visuals"])
         
-    with tab2:
-        speed = st.slider("Speed (FPS)", 1, 60, st.session_state.params['speed'])
-        duration = st.slider("Epoch Duration", 10, 500, st.session_state.params['duration'])
-    
-    with tab3:
-        decay = st.slider("Trail Decay", 0.01, 0.5, st.session_state.params['decay'])
-        # Find index for selectbox
-        current_color = st.session_state.params['colormap']
-        options = ["magma", "viridis", "plasma", "inferno", "ocean", "gist_earth"]
-        idx = options.index(current_color) if current_color in options else 0
-        colormap = st.selectbox("Color Theme", options, index=idx)
+        with tab1:
+            c1, c2 = st.columns(2)
+            width = c1.slider("Width", 50, 200, st.session_state.params['width'])
+            height = c2.slider("Height", 50, 200, st.session_state.params['height'])
+            prob = st.slider("Life Probability", 0.0, 1.0, st.session_state.params['prob'])
+            
+        with tab2:
+            speed = st.slider("Speed (FPS)", 1, 60, st.session_state.params['speed'])
+            duration = st.slider("Epoch Duration", 10, 500, st.session_state.params['duration'])
+        
+        with tab3:
+            decay = st.slider("Trail Decay", 0.01, 0.5, st.session_state.params['decay'])
+            # Find index for selectbox
+            current_color = st.session_state.params['colormap']
+            options = ["magma", "viridis", "plasma", "inferno", "ocean", "gist_earth"]
+            idx = options.index(current_color) if current_color in options else 0
+            colormap = st.selectbox("Color Theme", options, index=idx)
 
-    st.markdown("---")
-    
-    if st.button("🚀 Initialize Sequence", type="primary", use_container_width=True):
-        st.session_state.params.update({
-            'width': width, 'height': height, 'prob': prob, 
-            'duration': duration, 'speed': speed, 'decay': decay, 
-            'colormap': colormap
-        })
-        st.session_state.run_sim = True
-        st.rerun()
+        st.write("") # Spacer
+        
+        # Form Submit Button
+        submitted = st.form_submit_button("🚀 Initialize Sequence", type="primary", use_container_width=True)
+        
+        if submitted:
+            st.session_state.params.update({
+                'width': width, 'height': height, 'prob': prob, 
+                'duration': duration, 'speed': speed, 'decay': decay, 
+                'colormap': colormap
+            })
+            st.session_state.run_sim = True
+            st.rerun()
 
 # Header Layout
 col_title, col_btn = st.columns([6, 1])
